@@ -2,13 +2,13 @@
 $:.push File.expand_path("../lib", __FILE__)
 
 Gem::Specification.new do |s|
-  s.name        = "redis_ha_store"
+  s.name        = "redis_ha"
   s.version     = "0.0.1"
   s.date        = Date.today.to_s
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Paul Asmuth"]
   s.email       = ["paul@paulasmuth.com"]
-  s.homepage    = "http://github.com/paulasmuth/redis_ha_store"
+  s.homepage    = "http://github.com/paulasmuth/redis_ha"
   s.summary     = %q{fnord}
   s.description = %q{fnord}
   s.licenses    = ["MIT"]

@@ -1,17 +1,19 @@
-redis_ha_store
-==============
+RedisHA
+=======
 
-fnord
+Three basic CRDTs (set, hashmap and counter) for redis. Also includes
+a ConnectionPool that allows you to run concurrent redis commands on
+multiple connections w/o using eventmachine/em-hiredis.
 
 
 Installation
 ------------
 
-    gem install redis_ha_store
+    gem install redis_ha
 
 or in your Gemfile:
 
-    gem 'redis_ha_store', '~> 0.1'
+    gem 'redis_ha', '~> 0.1'
 
 
 License
