@@ -14,6 +14,7 @@ pool.read_timeout = 0.5
 pool.connect(
   {:host => "localhost", :port => 6379},
   {:host => "localhost", :port => 6380},
+  {:host => "localhost", :port => 6381},
   {:host => "localhost", :port => 6385})
 
 pp pool.info

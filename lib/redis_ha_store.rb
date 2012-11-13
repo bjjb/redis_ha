@@ -4,6 +4,9 @@ require "timeout"
 
 module RedisHAStore
 
+  class Error < StandardError
+  end
+
   class Semaphore
 
     def initialize(n)
@@ -55,11 +58,11 @@ module RedisHAStore
 
     def ensure_connected
       unless @connected
-        raise "you need to call Base.connect first"
+        raise Error.new("you need to call Base.connect first")
       end
 
       unless @connections.map(&:status).include?(:up)
-        raise "no servers available"
+        raise Error.new("no servers available")
       end
     end
 
