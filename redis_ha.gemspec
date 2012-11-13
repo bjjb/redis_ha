@@ -9,8 +9,8 @@ Gem::Specification.new do |s|
   s.authors     = ["Paul Asmuth"]
   s.email       = ["paul@paulasmuth.com"]
   s.homepage    = "http://github.com/paulasmuth/redis_ha"
-  s.summary     = %q{fnord}
-  s.description = %q{fnord}
+  s.summary     = %q{basic CRDTs and a HA connection pool for redis}
+  s.description = %q{Three basic CRDTs (set, hashmap and counter) for redis. Also includes a ConnectionPool that allows you to run concurrent redis commands on multiple connections w/o using eventmachine/em-hiredis.}
   s.licenses    = ["MIT"]
 
   s.add_dependency "redis", ">= 2.2.2"
