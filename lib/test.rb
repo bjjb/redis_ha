@@ -10,6 +10,20 @@ def bm(label)
   puts "#{label}: #{d.to_i}ms"
 end
 
+10.times do |n|
+  map = RedisHAStore::HashMap.new("fnordmap")
+  map.connect(
+    {:host => "localhost", :port => 6379},
+    {:host => "localhost", :port => 6380},
+    {:host => "localhost", :port => 6385},
+    {:host => "localhost", :port => 6382},
+    {:host => "localhost", :port => 6383}
+  )
+  bm "HashMap.set ##{n}" do
+    map.set(:fu=>:bar, :fnord=>:bar)
+  end
+end
+
 bm "sequential connect" do
   map = RedisHAStore::HashMap.new("fnordmap")
   map.connect(:host => "localhost", :port => 6379)

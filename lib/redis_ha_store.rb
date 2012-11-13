@@ -86,10 +86,24 @@ module RedisHAStore
   private
 
     def connect
-      Timeout::timeout(@read_timeout) do
+      with_timeout do
         @redis = Redis.new(@redis_opts)
-        mark_as_up if @redis.ping
+        @redis.ping
       end
+    end
+
+    def call(*msg)
+      with_timeout do
+        @redis.send(*msg)
+      end
+    end
+
+    def with_timeout
+      result = Timeout::timeout(@read_timeout) do
+        yield
+      end
+      mark_as_up
+      result
     rescue Redis::CannotConnectError
       mark_as_down
     rescue Timeout::Error
@@ -151,7 +165,7 @@ module RedisHAStore
 
   class HashMap < Base
 
-    # this lambda defines how the individual response hashes are mergedi
+    # this lambda defines how the individual response hashes are merged
     # the default is to merge in reverse-chronological order
     DEFAULT_MERGE_STRATEGY = ->(v) { v
       .sort{ |a,b| a[:_time] <=> b[:_time] }
@@ -159,17 +173,20 @@ module RedisHAStore
 
     attr_accessor :merge_strategy, :connections
 
-    def initialize(prefix, opts = {})
+    def initialize(key, opts = {})
       @merge_strategy ||= DEFAULT_MERGE_STRATEGY
+      @key = key
 
       super()
     end
 
-    def set(key, data = {})
+    def set(data = {})
       ensure_connected
+
+      run_sync(:call, :set, @key, "fnord")
     end
 
-    def get(key)
+    def get
       ensure_connected
     end
 
