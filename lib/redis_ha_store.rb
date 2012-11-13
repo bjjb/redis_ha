@@ -59,7 +59,6 @@ module RedisHAStore
     def run_sync
       while job = @queue.pop
         semaphore, *msg = job
-        puts msg.inspect
         send(*msg)
         semaphore.decrement
       end
@@ -112,11 +111,11 @@ module RedisHAStore
       @connections  = []
     end
 
-    def add_redis(opts = {})
-      @connections << RedisHAStore::Connection.new(opts)
-    end
+    def connect(*conns)
+      conns.each do |conn|
+        @connections << RedisHAStore::Connection.new(conn)
+      end
 
-    def connect
       run_sync(:connect)
     end
 
