@@ -1,7 +1,5 @@
 require "rubygems"; require "redis"; load ::File.expand_path("../redis_ha_store.rb",__FILE__ )
 require "pp"
-require "benchmark"
-
 
 def bm(label)
   t = Time.now.to_f
@@ -17,6 +15,8 @@ pool.connect(
   {:host => "localhost", :port => 6379},
   {:host => "localhost", :port => 6380},
   {:host => "localhost", :port => 6385})
+
+pp pool.info
 
 map = RedisHAStore::HashMap.new(pool, "fnordmap")
 

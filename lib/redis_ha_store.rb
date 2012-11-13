@@ -176,6 +176,8 @@ module RedisHAStore
 
   class Base
 
+    attr_accessor :pool
+
     def initialize(pool)
       @pool = pool
       @pool.ensure_connected
@@ -197,7 +199,7 @@ module RedisHAStore
       .sort{ |a,b| a[:_time] <=> b[:_time] }
       .inject({}){ |t,c| t.merge!(c) } }
 
-    attr_accessor :merge_strategy, :connections
+    attr_accessor :merge_strategy, :key
 
     def initialize(pool, key, opts = {})
       @merge_strategy = DEFAULT_MERGE_STRATEGY
