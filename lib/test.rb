@@ -1,4 +1,4 @@
-require "rubygems"; require "redis"; require "pp"
+require "rubygems"; require "redis"; require "pp"; require "ripl"
 
 def bm(label)
   t = Time.now.to_f
@@ -11,7 +11,7 @@ $: << ::File.expand_path("..", __FILE__)
 require "redis_ha"
 
 pool = RedisHA::ConnectionPool.new
-pool.retry_timeout = 0.5
+pool.retry_timeout = 5
 pool.read_timeout = 0.5
 pool.connect(
   {:host => "localhost", :port => 6379},
@@ -19,9 +19,12 @@ pool.connect(
   {:host => "localhost", :port => 6381},
   {:host => "localhost", :port => 6385})
 
-pp pool.ping
-
 map = RedisHA::HashMap.new(pool, "fnordmap")
+
+Ripl.start :binding => binding
+exit
+
+
 bm "1000x HashMap.set w/ retries" do
   1000.times do |n|
     map.set(:fu=>:bar, :fnord=>:bar)

@@ -6,12 +6,22 @@ class RedisHA::HashMap < RedisHA::Base
     .sort{ |a,b| a[:_time] <=> b[:_time] }
     .inject({}){ |t,c| t.merge!(c) } }
 
+
   def set(data = {})
-    pool.set(@key, "fnord")
+    data.merge!(:_time => Time.now.to_i)
+    pool.set(@key, Marshal.dump(data))
+    true
   end
 
-  def get(key)
-    pool.get(@key)
+  def get
+    versions = pool.get(@key).map do |v|
+      next if v.nil? || v == ""
+      puts v.inspect
+      Marshal.load(v) rescue nil
+    end.compact
+    merge_strategy[versions].tap do |merged|
+      merged.delete(:_time)
+    end
   end
 
   def merge_strategy
