@@ -164,9 +164,9 @@ module RedisHA
         yield
       end
     rescue Redis::CannotConnectError
-      mark_as_down
+      mark_as_down; nil
     rescue Timeout::Error
-      mark_as_down
+      mark_as_down; nil
     else
       mark_as_up; ret
     end
