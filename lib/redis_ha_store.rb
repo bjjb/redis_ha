@@ -86,16 +86,21 @@ module RedisHAStore
   private
 
     def connect
-      with_timeout do
+      with_timeout_and_check do
         @redis = Redis.new(@redis_opts)
         @redis.ping
       end
     end
 
     def call(*msg)
-      with_timeout do
+      with_timeout_and_check do
         @redis.send(*msg)
       end
+    end
+
+    def with_timeout_and_check(&block)
+      return nil unless up_or_retry?
+      with_timeout(&block)
     end
 
     def with_timeout
@@ -110,6 +115,14 @@ module RedisHAStore
       mark_as_down
     end
 
+    def up_or_retry?
+      return true if @status == :up
+      return true unless @down_since
+      down_diff = Time.now.to_i - @down_since
+      return true if down_diff > @retry_timeout
+      false
+    end
+
     def mark_as_down
       @status = :down
       @down_since = Time.now.to_i
@@ -118,10 +131,6 @@ module RedisHAStore
     def mark_as_up
       @status = :up
       @down_since = nil
-    end
-
-    def down_since
-      @down_since ||= Time.now.to_i
     end
 
   end

@@ -10,19 +10,9 @@ def bm(label)
   puts "#{label}: #{d.to_i}ms"
 end
 
-10.times do |n|
-  map = RedisHAStore::HashMap.new("fnordmap")
-  map.connect(
-    {:host => "localhost", :port => 6379},
-    {:host => "localhost", :port => 6380},
-    {:host => "localhost", :port => 6385},
-    {:host => "localhost", :port => 6382},
-    {:host => "localhost", :port => 6383}
-  )
-  bm "HashMap.set ##{n}" do
-    map.set(:fu=>:bar, :fnord=>:bar)
-  end
-end
+RedisHAStore.default_retry_timeout = 0.5
+RedisHAStore.default_read_timeout = 0.5
+
 
 bm "sequential connect" do
   map = RedisHAStore::HashMap.new("fnordmap")
@@ -44,4 +34,20 @@ bm "async connect" do
     {:host => "localhost", :port => 6383}
   )
   pp map.connections
+end
+
+
+
+map = RedisHAStore::HashMap.new("fnordmap")
+map.connect(
+  {:host => "localhost", :port => 6379},
+  {:host => "localhost", :port => 6380},
+  {:host => "localhost", :port => 6385},
+  {:host => "localhost", :port => 6382},
+  {:host => "localhost", :port => 6383}
+)
+1000.times do |n|
+  bm "HashMap.set ##{n}" do
+    map.set(:fu=>:bar, :fnord=>:bar)
+  end
 end
