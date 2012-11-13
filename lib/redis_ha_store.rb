@@ -6,13 +6,22 @@ Thread.abort_on_exception = true
 
 module RedisHAStore
 
-  # timeout after which a redis connection is considered down. the
-  # default is 500ms
-  DEFAULT_READ_TIMEOUT  = 0.5
+  def self.default_read_timeout=(t)
+    @@default_read_timeout = t
+  end
 
-  # timeout after which a redis that was marked as down is retried
-  # the default is 5s
-  DEFAULT_RETRY_TIMEOUT = 5
+  def self.default_read_timeout
+    @@default_read_timeout ||= Connection::DEFAULT_READ_TIMEOUT
+  end
+
+  def self.default_retry_timeout=(t)
+    @@default_retry_timeout = t
+  end
+
+  def self.default_retry_timeout
+    @@default_retry_timeout ||= Connection::DEFAULT_RETRY_TIMEOUT
+  end
+
 
   class Semaphore
 
@@ -35,11 +44,19 @@ module RedisHAStore
 
   class Connection < Thread
 
+    # timeout after which a redis connection is considered down. the
+    # default is 500ms
+    DEFAULT_READ_TIMEOUT  = 0.5
+
+    # timeout after which a redis that was marked as down is retried
+    # the default is 5s
+    DEFAULT_RETRY_TIMEOUT = 5
+
     attr_accessor :status, :read_timeout, :retry_timeout
 
     def initialize(redis_opts, opts = {})
-      @read_timeout   ||= DEFAULT_READ_TIMEOUT
-      @retry_timeout  ||= DEFAULT_RETRY_TIMEOUT
+      @read_timeout   ||= RedisHAStore.default_read_timeout
+      @retry_timeout  ||= RedisHAStore.default_retry_timeout
 
       @redis_opts = redis_opts
       @opts = opts
