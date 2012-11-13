@@ -127,9 +127,7 @@ module RedisHAStore
       end
 
       run_sync(:connect)
-    end
-
-    def status
+      @connected = true
     end
 
   private
@@ -142,6 +140,11 @@ module RedisHAStore
       end
 
       @semaphore.wait
+    end
+
+    def ensure_connected
+      return if @connected
+      raise "you need to invoke Base.connect first"
     end
 
   end
@@ -163,9 +166,11 @@ module RedisHAStore
     end
 
     def set(key, data = {})
+      ensure_connected
     end
 
     def get(key)
+      ensure_connected
     end
 
   end
