@@ -2,9 +2,11 @@ require "rubygems"
 require "redis"
 require "timeout"
 
+Thread.abort_on_exception = true
+
 module RedisHAStore
 
-  # this lambda defines how the individual response hashes are merged
+  # this lambda defines how the individual response hashes are mergedi
   # the default is to merge in reverse-chronological order
   DEFAULT_MERGE_STRATEGY = ->(v) { v
     .sort{ |a,b| a[:_time] <=> b[:_time] }
@@ -18,7 +20,26 @@ module RedisHAStore
   # the default is 5s
   DEFAULT_RETRY_TIMEOUT = 5
 
-  class Connection
+  class Semaphore
+
+    def initialize(n)
+      @lock = Mutex.new
+      @n = n
+    end
+
+    def decrement
+      @lock.synchronize do
+        @n -= 1
+      end
+    end
+
+    def wait
+      sleep(0.001) while @n != 0
+    end
+
+  end
+
+  class Connection < Thread
 
     attr_accessor :status, :read_timeout, :retry_timeout
 
@@ -28,8 +49,28 @@ module RedisHAStore
 
       @redis_opts = redis_opts
       @opts = opts
+      @queue = Queue.new
 
-      connect
+      super do
+        self.run_sync
+      end
+    end
+
+    def run_sync
+      while job = @queue.pop
+        semaphore, *msg = job
+        puts msg.inspect
+        send(*msg)
+        semaphore.decrement
+      end
+    end
+
+    def run_async(*msg)
+      @queue << msg
+    end
+
+    def inspect
+      "<conn status:#{self.status}>"
     end
 
   private
@@ -75,6 +116,10 @@ module RedisHAStore
       @connections << RedisHAStore::Connection.new(opts)
     end
 
+    def connect
+      run_sync(:connect)
+    end
+
     def status
     end
 
@@ -82,6 +127,18 @@ module RedisHAStore
     end
 
     def get(key)
+    end
+
+  private
+
+    def run_sync(*msg)
+      @semaphore = Semaphore.new(@connections.size)
+
+      @connections.each do |conn|
+        conn.run_async(@semaphore, *msg)
+      end
+
+      @semaphore.wait
     end
 
   end

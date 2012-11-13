@@ -8,5 +8,6 @@ map.add_redis(:host => "localhost", :port => 6380)
 map.add_redis(:host => "localhost", :port => 6381)
 map.add_redis(:host => "localhost", :port => 6382)
 map.add_redis(:host => "localhost", :port => 6383)
+map.connect
 
 pp map.connections
