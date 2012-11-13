@@ -17,6 +17,9 @@ pool.connect(
   {:host => "localhost", :port => 6385})
 
 pp pool.info
+pp pool.info
+pp pool.info
+exit
 
 map = RedisHAStore::HashMap.new(pool, "fnordmap")
 bm "1000x HashMap.set w/ retries" do

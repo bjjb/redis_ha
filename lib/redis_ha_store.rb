@@ -44,17 +44,23 @@ module RedisHAStore
     end
 
     def connect(*conns)
+      @connected = true
+
       conns.each do |conn|
         @connections << setup(conn)
       end
 
       async(:connect)
-      @connected = true
     end
 
     def ensure_connected
-      return if @connected
-      raise "you need to call Base.connect first"
+      unless @connected
+        raise "you need to call Base.connect first"
+      end
+
+      unless @connections.map(&:status).include?(:up)
+        raise "no servers available"
+      end
     end
 
     def method_missing(*msg)
@@ -72,7 +78,10 @@ module RedisHAStore
       end
 
       @semaphore.wait
-      @connections.map(&:next)
+
+      @connections.map(&:next).tap do
+        ensure_connected
+      end
     end
 
     def setup(redis_opts)
@@ -92,12 +101,11 @@ module RedisHAStore
 
       @read_timeout = opts[:read_timeout]
       @retry_timeout = opts[:retry_timeout]
-
       @redis_opts = redis_opts
-      @queue = Queue.new
 
+      @queue = Queue.new
       @buffer = Array.new
-      @buffer_mutex = Mutex.new
+      @mutex = Mutex.new
 
       super do
         run
@@ -105,8 +113,8 @@ module RedisHAStore
     end
 
     def next
-      @buffer_mutex.synchronize do
-        @buffer.unshift
+      @mutex.synchronize do
+        @buffer.shift
       end
     end
 
@@ -120,7 +128,7 @@ module RedisHAStore
       while job = @queue.pop
         semaphore, *msg = job
 
-        @buffer_mutex.synchronize do
+        @mutex.synchronize do
           @buffer << send(*msg)
         end
 
