@@ -6,23 +6,6 @@ Thread.abort_on_exception = true
 
 module RedisHAStore
 
-  def self.default_read_timeout=(t)
-    @@default_read_timeout = t
-  end
-
-  def self.default_read_timeout
-    @@default_read_timeout ||= Connection::DEFAULT_READ_TIMEOUT
-  end
-
-  def self.default_retry_timeout=(t)
-    @@default_retry_timeout = t
-  end
-
-  def self.default_retry_timeout
-    @@default_retry_timeout ||= Connection::DEFAULT_RETRY_TIMEOUT
-  end
-
-
   class Semaphore
 
     def initialize(n)
@@ -42,7 +25,7 @@ module RedisHAStore
 
   end
 
-  class Connection < Thread
+  class ConnectionPool
 
     # timeout after which a redis connection is considered down. the
     # default is 500ms
@@ -52,14 +35,69 @@ module RedisHAStore
     # the default is 5s
     DEFAULT_RETRY_TIMEOUT = 5
 
-    attr_accessor :status, :read_timeout, :retry_timeout
+    attr_accessor :status, :connections, :read_timeout, :retry_timeout
+
+    def initialize
+      @read_timeout  = DEFAULT_READ_TIMEOUT
+      @retry_timeout = DEFAULT_RETRY_TIMEOUT
+
+      @connections = []
+      @connected = false
+    end
+
+    def connect(*conns)
+      conns.each do |conn|
+        @connections << new_connection(conn)
+      end
+
+      invoke_unsafe(:connect)
+      @connected = true
+    end
+
+    def invoke(*msg)
+      ensure_connected
+      invoke_unsafe(*msg)
+    end
+
+  private
+
+    def invoke_unsafe(*msg)
+      @semaphore = Semaphore.new(@connections.size)
+
+      @connections.each do |conn|
+        conn.run_async(@semaphore, *msg)
+      end
+
+      @semaphore.wait
+    end
+
+    def ensure_connected
+      return if @connected
+      raise "you need to invoke Base.connect first"
+    end
+
+    def new_connection(redis_opts)
+      Connection.new(redis_opts, default_opts)
+    end
+
+    def default_opts
+      {
+        :retry_timeout => @retry_timeout,
+        :read_timeout => @read_timeout
+      }
+    end
+
+  end
+
+  class Connection < Thread
+
+    attr_accessor :status
 
     def initialize(redis_opts, opts = {})
-      @read_timeout   ||= RedisHAStore.default_read_timeout
-      @retry_timeout  ||= RedisHAStore.default_retry_timeout
+      @read_timeout = opts[:read_timeout]
+      @retry_timeout = opts[:retry_timeout]
 
       @redis_opts = redis_opts
-      @opts = opts
       @queue = Queue.new
 
       super do
@@ -133,39 +171,6 @@ module RedisHAStore
   end
 
   class Base
-
-    attr_accessor :connections
-
-    def initialize
-      @connections  = []
-      @connected = false
-    end
-
-    def connect(*conns)
-      conns.each do |conn|
-        @connections << RedisHAStore::Connection.new(conn)
-      end
-
-      run_sync(:connect)
-      @connected = true
-    end
-
-  private
-
-    def run_sync(*msg)
-      @semaphore = Semaphore.new(@connections.size)
-
-      @connections.each do |conn|
-        conn.run_async(@semaphore, *msg)
-      end
-
-      @semaphore.wait
-    end
-
-    def ensure_connected
-      return if @connected
-      raise "you need to invoke Base.connect first"
-    end
 
   end
 

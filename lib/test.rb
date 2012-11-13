@@ -11,22 +11,47 @@ def bm(label)
 end
 
 
-RedisHAStore.default_retry_timeout = 0.5
-RedisHAStore.default_read_timeout = 0.3
-map = RedisHAStore::HashMap.new("fnordmap")
-map.connect(
+bm "sequential connect" do
+  pool = RedisHAStore::ConnectionPool.new
+  pool.connect(:host => "localhost", :port => 6379)
+  pool.connect(:host => "localhost", :port => 6380)
+  pool.connect(:host => "localhost", :port => 6385)
+  pool.connect(:host => "localhost", :port => 6382)
+  pool.connect(:host => "localhost", :port => 6383)
+end
+
+bm "async connect" do
+  pool = RedisHAStore::ConnectionPool.new
+  pool.connect(
+    {:host => "localhost", :port => 6379},
+    {:host => "localhost", :port => 6380},
+    {:host => "localhost", :port => 6385},
+    {:host => "localhost", :port => 6382},
+    {:host => "localhost", :port => 6383}
+  )
+end
+
+
+
+exit
+
+pool = RedisHAStore::ConnectionPool.new
+pool.retry_timeout = 0.5
+pool.read_timeout = 0.5
+pool.connect(
   {:host => "localhost", :port => 6379},
   {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6385}
-)
+  {:host => "localhost", :port => 6385})
+
+
+map = RedisHAStore::HashMap.new("fnordmap")
+
 bm "1000x HashMap.set w/ retries" do
   1000.times do |n|
     map.set(:fnord, :fu=>:bar, :fnord=>:bar)
   end
 end
 
-RedisHAStore.default_retry_timeout = 30
-RedisHAStore.default_read_timeout = 0.3
 map = RedisHAStore::HashMap.new("fnordmap")
 map.connect(
   {:host => "localhost", :port => 6379},
@@ -37,27 +62,6 @@ bm "1000x HashMap.set w/o retries" do
   1000.times do |n|
     map.set(:fnord, :fu=>:bar, :fnord=>:bar)
   end
-end
-
-
-bm "sequential connect" do
-  map = RedisHAStore::HashMap.new("fnordmap")
-  map.connect(:host => "localhost", :port => 6379)
-  map.connect(:host => "localhost", :port => 6380)
-  map.connect(:host => "localhost", :port => 6385)
-  map.connect(:host => "localhost", :port => 6382)
-  map.connect(:host => "localhost", :port => 6383)
-end
-
-bm "async connect" do
-  map = RedisHAStore::HashMap.new("fnordmap")
-  map.connect(
-    {:host => "localhost", :port => 6379},
-    {:host => "localhost", :port => 6380},
-    {:host => "localhost", :port => 6385},
-    {:host => "localhost", :port => 6382},
-    {:host => "localhost", :port => 6383}
-  )
 end
 
 
