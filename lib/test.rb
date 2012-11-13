@@ -10,6 +10,38 @@ def bm(label)
   puts "#{label}: #{d.to_i}ms"
 end
 
+pool = RedisHAStore::ConnectionPool.new
+pool.retry_timeout = 0.5
+pool.read_timeout = 0.5
+pool.connect(
+  {:host => "localhost", :port => 6379},
+  {:host => "localhost", :port => 6380},
+  {:host => "localhost", :port => 6385})
+
+map = RedisHAStore::HashMap.new(pool, "fnordmap")
+
+bm "1000x HashMap.set w/ retries" do
+  1000.times do |n|
+    map.set(:fu=>:bar, :fnord=>:bar)
+  end
+end
+
+pool = RedisHAStore::ConnectionPool.new
+pool.retry_timeout = 50
+pool.read_timeout = 0.5
+pool.connect(
+  {:host => "localhost", :port => 6379},
+  {:host => "localhost", :port => 6380},
+  {:host => "localhost", :port => 6385})
+
+map = RedisHAStore::HashMap.new(pool, "fnordmap")
+
+bm "1000x HashMap.set w/o retries" do
+  1000.times do |n|
+    map.set(:fu=>:bar, :fnord=>:bar)
+  end
+end
+
 
 bm "sequential connect" do
   pool = RedisHAStore::ConnectionPool.new
@@ -30,38 +62,3 @@ bm "async connect" do
     {:host => "localhost", :port => 6383}
   )
 end
-
-
-
-exit
-
-pool = RedisHAStore::ConnectionPool.new
-pool.retry_timeout = 0.5
-pool.read_timeout = 0.5
-pool.connect(
-  {:host => "localhost", :port => 6379},
-  {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6385})
-
-
-map = RedisHAStore::HashMap.new("fnordmap")
-
-bm "1000x HashMap.set w/ retries" do
-  1000.times do |n|
-    map.set(:fnord, :fu=>:bar, :fnord=>:bar)
-  end
-end
-
-map = RedisHAStore::HashMap.new("fnordmap")
-map.connect(
-  {:host => "localhost", :port => 6379},
-  {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6385}
-)
-bm "1000x HashMap.set w/o retries" do
-  1000.times do |n|
-    map.set(:fnord, :fu=>:bar, :fnord=>:bar)
-  end
-end
-
-

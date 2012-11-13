@@ -59,21 +59,25 @@ module RedisHAStore
       invoke_unsafe(*msg)
     end
 
+    def ensure_connected
+      return if @connected
+      raise "you need to invoke Base.connect first"
+    end
+
+    def method_missing(*msg)
+      invoke(*msg)
+    end
+
   private
 
     def invoke_unsafe(*msg)
       @semaphore = Semaphore.new(@connections.size)
 
       @connections.each do |conn|
-        conn.run_async(@semaphore, *msg)
+        conn.invoke(@semaphore, *msg)
       end
 
       @semaphore.wait
-    end
-
-    def ensure_connected
-      return if @connected
-      raise "you need to invoke Base.connect first"
     end
 
     def new_connection(redis_opts)
@@ -101,11 +105,11 @@ module RedisHAStore
       @queue = Queue.new
 
       super do
-        self.run_sync
+        self.run
       end
     end
 
-    def run_sync
+    def run
       while job = @queue.pop
         semaphore, *msg = job
         send(*msg)
@@ -113,7 +117,7 @@ module RedisHAStore
       end
     end
 
-    def run_async(*msg)
+    def invoke(*msg)
       @queue << msg
     end
 
@@ -126,7 +130,7 @@ module RedisHAStore
       end
     end
 
-    def call(*msg)
+    def method_missing(*msg)
       with_timeout_and_check do
         @redis.send(*msg)
       end
@@ -172,6 +176,17 @@ module RedisHAStore
 
   class Base
 
+    def initialize(pool)
+      @pool = pool
+      @pool.ensure_connected
+    end
+
+  private
+
+    def invoke(*msg)
+      @pool.invoke(*msg)
+    end
+
   end
 
   class HashMap < Base
@@ -184,20 +199,18 @@ module RedisHAStore
 
     attr_accessor :merge_strategy, :connections
 
-    def initialize(opts = {})
-      @merge_strategy ||= DEFAULT_MERGE_STRATEGY
-
-      super()
+    def initialize(pool, key, opts = {})
+      @merge_strategy = DEFAULT_MERGE_STRATEGY
+      @key = key
+      super(pool)
     end
 
-    def set(key, data = {})
-      ensure_connected
-
-      run_sync(:call, :set, key, "fnord")
+    def set(data = {})
+      invoke(:set, @key, "fnord")
     end
 
     def get(key)
-      ensure_connected
+      invoke(:get, @key)
     end
 
   end
