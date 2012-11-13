@@ -9,6 +9,8 @@ module RedisHAStore
 
   class Semaphore
 
+    POLL_INTERVAL = 0.00001
+
     def initialize(n)
       @lock = Mutex.new
       @n = n
@@ -21,7 +23,7 @@ module RedisHAStore
     end
 
     def wait
-      sleep(0.001) while @n != 0
+      sleep(POLL_INTERVAL) while @n != 0
     end
 
   end
