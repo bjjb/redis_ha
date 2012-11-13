@@ -2,8 +2,6 @@ require "rubygems"
 require "redis"
 require "timeout"
 
-Thread.abort_on_exception = true
-
 module RedisHAStore
 
   class Semaphore
@@ -98,6 +96,8 @@ module RedisHAStore
     attr_accessor :status
 
     def initialize(redis_opts, opts = {})
+      self.abort_on_exception = true
+
       @read_timeout = opts[:read_timeout]
       @retry_timeout = opts[:retry_timeout]
 
