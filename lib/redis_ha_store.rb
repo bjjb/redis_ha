@@ -108,7 +108,7 @@ module RedisHAStore
 
       @queue = Queue.new
       @buffer = Array.new
-      @mutex = Mutex.new
+      @lock = Mutex.new
 
       super do
         run
@@ -116,7 +116,7 @@ module RedisHAStore
     end
 
     def next
-      @mutex.synchronize do
+      @lock.synchronize do
         @buffer.shift
       end
     end
@@ -131,7 +131,7 @@ module RedisHAStore
       while job = @queue.pop
         semaphore, *msg = job
 
-        @mutex.synchronize do
+        @lock.synchronize do
           @buffer << send(*msg)
         end
 
@@ -158,15 +158,15 @@ module RedisHAStore
     end
 
     def with_timeout
-      Timeout::timeout(@read_timeout) do
+      ret = Timeout::timeout(@read_timeout) do
         yield
       end
     rescue Redis::CannotConnectError
       mark_as_down
     rescue Timeout::Error
       mark_as_down
-    else 
-      mark_as_up
+    else
+      mark_as_up; ret
     end
 
     def up_or_retry?
