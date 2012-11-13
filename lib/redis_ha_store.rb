@@ -45,55 +45,47 @@ module RedisHAStore
 
     def connect(*conns)
       conns.each do |conn|
-        @connections << new_connection(conn)
+        @connections << setup(conn)
       end
 
-      invoke_unsafe(:connect)
+      async(:connect)
       @connected = true
-    end
-
-    def invoke(*msg)
-      ensure_connected
-      invoke_unsafe(*msg)
     end
 
     def ensure_connected
       return if @connected
-      raise "you need to invoke Base.connect first"
+      raise "you need to call Base.connect first"
     end
 
     def method_missing(*msg)
-      invoke(*msg)
+      ensure_connected
+      async(*msg)
     end
 
   private
 
-    def invoke_unsafe(*msg)
+    def async(*msg)
       @semaphore = Semaphore.new(@connections.size)
 
       @connections.each do |conn|
-        conn.invoke(@semaphore, *msg)
+        conn << [@semaphore, *msg]
       end
 
       @semaphore.wait
+      @connections.map(&:next)
     end
 
-    def new_connection(redis_opts)
-      Connection.new(redis_opts, default_opts)
-    end
-
-    def default_opts
-      {
+    def setup(redis_opts)
+      Connection.new(redis_opts,
         :retry_timeout => @retry_timeout,
-        :read_timeout => @read_timeout
-      }
+        :read_timeout => @read_timeout)
     end
 
   end
 
   class Connection < Thread
 
-    attr_accessor :status
+    attr_accessor :status, :buffer
 
     def initialize(redis_opts, opts = {})
       self.abort_on_exception = true
@@ -104,24 +96,37 @@ module RedisHAStore
       @redis_opts = redis_opts
       @queue = Queue.new
 
+      @buffer = Array.new
+      @buffer_mutex = Mutex.new
+
       super do
-        self.run
+        run
       end
     end
 
-    def run
-      while job = @queue.pop
-        semaphore, *msg = job
-        send(*msg)
-        semaphore.decrement
+    def next
+      @buffer_mutex.synchronize do
+        @buffer.unshift
       end
     end
 
-    def invoke(*msg)
+    def <<(msg)
       @queue << msg
     end
 
   private
+
+    def run
+      while job = @queue.pop
+        semaphore, *msg = job
+
+        @buffer_mutex.synchronize do
+          @buffer << send(*msg)
+        end
+
+        semaphore.decrement
+      end
+    end
 
     def connect
       with_timeout_and_check do
@@ -142,14 +147,15 @@ module RedisHAStore
     end
 
     def with_timeout
-      result = Timeout::timeout(@read_timeout) do
+      Timeout::timeout(@read_timeout) do
         yield
       end
-      result
     rescue Redis::CannotConnectError
       mark_as_down
     rescue Timeout::Error
       mark_as_down
+    else 
+      mark_as_up
     end
 
     def up_or_retry?
@@ -183,12 +189,6 @@ module RedisHAStore
       @pool.ensure_connected
     end
 
-  private
-
-    def invoke(*msg)
-      @pool.invoke(*msg)
-    end
-
   end
 
   class HashMap < Base
@@ -208,11 +208,11 @@ module RedisHAStore
     end
 
     def set(data = {})
-      invoke(:set, @key, "fnord")
+      pool.set(@key, "fnord")
     end
 
     def get(key)
-      invoke(:get, @key)
+      pool.get(@key)
     end
 
   end

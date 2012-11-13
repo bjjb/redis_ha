@@ -19,7 +19,6 @@ pool.connect(
 pp pool.info
 
 map = RedisHAStore::HashMap.new(pool, "fnordmap")
-
 bm "1000x HashMap.set w/ retries" do
   1000.times do |n|
     map.set(:fu=>:bar, :fnord=>:bar)
