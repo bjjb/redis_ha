@@ -79,10 +79,6 @@ module RedisHAStore
       @queue << msg
     end
 
-    def inspect
-      "<conn status:#{self.status}>"
-    end
-
   private
 
     def connect
@@ -107,7 +103,6 @@ module RedisHAStore
       result = Timeout::timeout(@read_timeout) do
         yield
       end
-      mark_as_up
       result
     rescue Redis::CannotConnectError
       mark_as_down
@@ -118,17 +113,19 @@ module RedisHAStore
     def up_or_retry?
       return true if @status == :up
       return true unless @down_since
-      down_diff = Time.now.to_i - @down_since
+
+      down_diff = Time.now.to_f - @down_since
       return true if down_diff > @retry_timeout
       false
     end
 
     def mark_as_down
       @status = :down
-      @down_since = Time.now.to_i
+      @down_since = Time.now.to_f
     end
 
     def mark_as_up
+      return if @status == :up
       @status = :up
       @down_since = nil
     end
@@ -182,20 +179,19 @@ module RedisHAStore
 
     attr_accessor :merge_strategy, :connections
 
-    def initialize(key, opts = {})
+    def initialize(opts = {})
       @merge_strategy ||= DEFAULT_MERGE_STRATEGY
-      @key = key
 
       super()
     end
 
-    def set(data = {})
+    def set(key, data = {})
       ensure_connected
 
-      run_sync(:call, :set, @key, "fnord")
+      run_sync(:call, :set, key, "fnord")
     end
 
-    def get
+    def get(key)
       ensure_connected
     end
 
