@@ -2,7 +2,7 @@ require "rubygems"
 require "redis"
 require "timeout"
 
-module RedisHAStore
+module RedisHA
 
   class Error < StandardError
   end

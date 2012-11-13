@@ -1,4 +1,4 @@
-require "rubygems"; require "redis"; load ::File.expand_path("../redis_ha_store.rb",__FILE__ )
+require "rubygems"; require "redis"; load ::File.expand_path("../redis_ha.rb",__FILE__ )
 require "pp"
 
 def bm(label)
@@ -8,7 +8,7 @@ def bm(label)
   puts "#{label}: #{d.to_i}ms"
 end
 
-pool = RedisHAStore::ConnectionPool.new
+pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
 pool.read_timeout = 0.5
 pool.connect(
@@ -19,14 +19,14 @@ pool.connect(
 
 pp pool.ping
 
-map = RedisHAStore::HashMap.new(pool, "fnordmap")
+map = RedisHA::HashMap.new(pool, "fnordmap")
 bm "1000x HashMap.set w/ retries" do
   1000.times do |n|
     map.set(:fu=>:bar, :fnord=>:bar)
   end
 end
 
-pool = RedisHAStore::ConnectionPool.new
+pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 50
 pool.read_timeout = 0.5
 pool.connect(
@@ -34,7 +34,7 @@ pool.connect(
   {:host => "localhost", :port => 6380},
   {:host => "localhost", :port => 6385})
 
-map = RedisHAStore::HashMap.new(pool, "fnordmap")
+map = RedisHA::HashMap.new(pool, "fnordmap")
 
 bm "1000x HashMap.set w/o retries" do
   1000.times do |n|
@@ -44,7 +44,7 @@ end
 
 
 bm "sequential connect" do
-  pool = RedisHAStore::ConnectionPool.new
+  pool = RedisHA::ConnectionPool.new
   pool.connect(:host => "localhost", :port => 6379)
   pool.connect(:host => "localhost", :port => 6380)
   pool.connect(:host => "localhost", :port => 6385)
@@ -53,7 +53,7 @@ bm "sequential connect" do
 end
 
 bm "async connect" do
-  pool = RedisHAStore::ConnectionPool.new
+  pool = RedisHA::ConnectionPool.new
   pool.connect(
     {:host => "localhost", :port => 6379},
     {:host => "localhost", :port => 6380},
