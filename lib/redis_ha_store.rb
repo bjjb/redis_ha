@@ -6,12 +6,6 @@ Thread.abort_on_exception = true
 
 module RedisHAStore
 
-  # this lambda defines how the individual response hashes are mergedi
-  # the default is to merge in reverse-chronological order
-  DEFAULT_MERGE_STRATEGY = ->(v) { v
-    .sort{ |a,b| a[:_time] <=> b[:_time] }
-    .inject({}){ |t,c| t.merge!(c) } }
-
   # timeout after which a redis connection is considered down. the
   # default is 500ms
   DEFAULT_READ_TIMEOUT  = 0.5
@@ -101,14 +95,13 @@ module RedisHAStore
 
   end
 
-  class HashMap
-    attr_accessor :merge_strategy, :connections
+  class Base
 
-    def initialize(prefix, opts = {})
-      @merge_strategy ||= DEFAULT_MERGE_STRATEGY
+    attr_accessor :connections
 
-      @redis_prefix = prefix
+    def initialize
       @connections  = []
+      @connected = false
     end
 
     def connect(*conns)
@@ -120,12 +113,6 @@ module RedisHAStore
     end
 
     def status
-    end
-
-    def set(key, data = {})
-    end
-
-    def get(key)
     end
 
   private
@@ -141,5 +128,30 @@ module RedisHAStore
     end
 
   end
+
+  class HashMap < Base
+
+    # this lambda defines how the individual response hashes are mergedi
+    # the default is to merge in reverse-chronological order
+    DEFAULT_MERGE_STRATEGY = ->(v) { v
+      .sort{ |a,b| a[:_time] <=> b[:_time] }
+      .inject({}){ |t,c| t.merge!(c) } }
+
+    attr_accessor :merge_strategy, :connections
+
+    def initialize(prefix, opts = {})
+      @merge_strategy ||= DEFAULT_MERGE_STRATEGY
+
+      super()
+    end
+
+    def set(key, data = {})
+    end
+
+    def get(key)
+    end
+
+  end
+
 
 end
