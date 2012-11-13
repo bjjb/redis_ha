@@ -1,5 +1,4 @@
-require "rubygems"; require "redis"; load ::File.expand_path("../redis_ha.rb",__FILE__ )
-require "pp"
+require "rubygems"; require "redis"; require "pp"
 
 def bm(label)
   t = Time.now.to_f
@@ -7,6 +6,9 @@ def bm(label)
   d = (Time.now.to_f - t) * 1000
   puts "#{label}: #{d.to_i}ms"
 end
+
+$: << ::File.expand_path("..", __FILE__)
+require "redis_ha"
 
 pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
