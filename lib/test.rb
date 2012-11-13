@@ -11,7 +11,7 @@ $: << ::File.expand_path("..", __FILE__)
 require "redis_ha"
 
 pool = RedisHA::ConnectionPool.new
-pool.retry_timeout = 5
+pool.retry_timeout = 0.5
 pool.read_timeout = 0.5
 pool.connect(
   {:host => "localhost", :port => 6379},
@@ -20,6 +20,7 @@ pool.connect(
   {:host => "localhost", :port => 6385})
 
 map = RedisHA::HashMap.new(pool, "fnordmap")
+set = RedisHA::Set.new(pool, "fnordset")
 
 Ripl.start :binding => binding
 exit
