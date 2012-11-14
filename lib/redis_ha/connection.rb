@@ -64,12 +64,14 @@ private
     ret = Timeout::timeout(@read_timeout) do
       yield
     end
-  rescue Redis::CannotConnectError
-    mark_as_down; nil
-  rescue Timeout::Error
-    mark_as_down; nil
+  rescue Exception => e
+    @status = :down
+    @down_since = Time.now.to_f
+    return nil
   else
-    mark_as_up; ret
+    @down_since = nil if @status != :up
+    @status = :up
+    return ret
   end
 
   def up_or_retry?
@@ -79,17 +81,6 @@ private
     down_diff = Time.now.to_f - @down_since
     return true if down_diff > @retry_timeout
     false
-  end
-
-  def mark_as_down
-    @status = :down
-    @down_since = Time.now.to_f
-  end
-
-  def mark_as_up
-    return if @status == :up
-    @status = :up
-    @down_since = nil
   end
 
 end
