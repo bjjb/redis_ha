@@ -5,6 +5,30 @@ Three basic CRDTs (set, hashmap and counter) for redis. Also includes
 a ConnectionPool that allows you to run concurrent redis commands on
 multiple connections w/o using eventmachine/em-hiredis.
 
+Usage
+-----
+
+Create a RedisHA::ConnectionPool
+
+    here be dragons
+
+
+ADD/REM/GET on a RedisHA::Set
+
+    here be dragons
+
+
+INCR/DECR/SET/GET on a RedisHA::Counter
+
+    here be dragons
+
+
+SET/GET on a RedisHA::HashMap
+
+    here be dragons
+
+
+
 
 Installation
 ------------
@@ -13,7 +37,7 @@ Installation
 
 or in your Gemfile:
 
-    gem 'redis_ha', '~> 0.1'
+    gem 'redis_ha', '~> 0.3'
 
 
 License
