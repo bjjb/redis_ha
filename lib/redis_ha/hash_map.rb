@@ -16,7 +16,6 @@ class RedisHA::HashMap < RedisHA::Base
   def get
     versions = pool.get(@key).map do |v|
       next if v.nil? || v == ""
-      puts v.inspect
       Marshal.load(v) rescue nil
     end.compact
     merge_strategy[versions].tap do |merged|
