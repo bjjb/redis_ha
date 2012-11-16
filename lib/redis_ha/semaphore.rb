@@ -1,6 +1,6 @@
 class RedisHA::Semaphore
 
-  POLL_INTERVAL = 0.00001
+  POLL_INTERVAL = 0.001
 
   def initialize(n)
     @lock = Mutex.new
