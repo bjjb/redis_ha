@@ -1,5 +1,7 @@
 class RedisHA::Connection < Thread
 
+  POLL_INTERVAL = 0.00001
+
   attr_accessor :status, :buffer
 
   def initialize(redis_opts, opts = {})
@@ -9,7 +11,7 @@ class RedisHA::Connection < Thread
     @retry_timeout = opts[:retry_timeout]
     @redis_opts = redis_opts
 
-    @queue = Queue.new
+    @queue = Array.new
     @buffer = Array.new
     @lock = Mutex.new
 
@@ -25,13 +27,15 @@ class RedisHA::Connection < Thread
   end
 
   def <<(msg)
-    @queue << msg
+    @lock.synchronize do
+      @queue << msg
+    end
   end
 
 private
 
   def run
-    while job = @queue.pop
+    while job = pop
       semaphore, *msg = job
 
       @lock.synchronize do
@@ -39,6 +43,16 @@ private
       end
 
       semaphore.decrement
+    end
+  end
+
+  def pop
+    loop do
+      sleep(POLL_INTERVAL) while @queue.size < 1
+      @lock.synchronize do
+        job = @queue.shift
+        return job if job
+      end
     end
   end
 
