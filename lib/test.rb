@@ -12,19 +12,24 @@ require "redis_ha"
 
 pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
-pool.read_timeout = 0.5
+pool.read_timeout = 0.1
 pool.connect(
   {:host => "localhost", :port => 6379},
   {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6381},
-  {:host => "localhost", :port => 6385})
+  {:host => "localhost", :port => 6381})
 
 map = RedisHA::HashMap.new(pool, "fnordmap")
 set = RedisHA::Set.new(pool, "fnordset")
 ctr = RedisHA::Counter.new(pool, "fnordctr")
 
-Ripl.start :binding => binding
-exit
+#Ripl.start :binding => binding
+#exit
+
+bm "1000x ping" do
+  1000.times do |n|
+    pool.ping
+  end
+end
 
 
 bm "1000x HashMap.set w/ retries" do
