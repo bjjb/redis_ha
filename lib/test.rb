@@ -1,4 +1,7 @@
-require "rubygems"; require "redis"; require "pp"; require "ripl"
+require "rubygems"
+ require "redis"
+ require "pp"
+ require "ripl"
 
 def bm(label)
   t = Time.now.to_f
@@ -22,7 +25,12 @@ map = RedisHA::HashMap.new(pool, "fnordmap")
 set = RedisHA::Set.new(pool, "fnordset")
 ctr = RedisHA::Counter.new(pool, "fnordctr")
 
-load "./redis_ha/new_connection_pool.rb"; p=RedisHA::NewConnectionPool.new; p.add_redis(:host => "127.0.0.1", :port => (ENV["PORT"]||6379).to_i); p.execute(:ping)
+load "./redis_ha/new_connection_pool.rb"
+p=RedisHA::NewConnectionPool.new
+p.add_redis(:host => "127.0.0.1", :port => (ENV["PORT"]||6379).to_i)
+p.add_redis(:host => "127.0.0.1", :port => (6380).to_i)
+x = p.execute(:ping)
+puts x.inspect
 
 #Ripl.start :binding => binding
 exit

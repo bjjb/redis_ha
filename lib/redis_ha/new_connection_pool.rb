@@ -18,6 +18,7 @@ class RedisHA::NewConnectionPool
     rescue Errno::EINPROGRESS
       nil
     rescue Errno::ECONNREFUSED
+      STDOUT.puts "conn refused"
       @ready = true
     end
 
@@ -30,6 +31,7 @@ class RedisHA::NewConnectionPool
     rescue Errno::ENOTCONN
       connect
     rescue Errno::ECONNREFUSED
+      STDOUT.puts "conn refused"
       @ready = true
     end
 
@@ -39,6 +41,7 @@ class RedisHA::NewConnectionPool
     rescue Errno::EPIPE
       connect
     rescue Errno::ECONNREFUSED
+      STDOUT.puts "conn refused"
       @ready = true
     end
 
@@ -58,12 +61,8 @@ class RedisHA::NewConnectionPool
     end
 
     def execution_expired
-      @execution_expired = true
+      STDOUT.puts "execution expired"
       @ready = true
-    end
-
-    def execution_expired?
-      !!@execution_expired
     end
 
     def ready?
@@ -71,6 +70,7 @@ class RedisHA::NewConnectionPool
     end
 
     def check
+      STDOUT.puts "check"
       @ready = @read_buffer.size > 3
     end
 
@@ -95,8 +95,7 @@ class RedisHA::NewConnectionPool
     await
 
     @conns.map do |conn|
-      raise Timeout::Error if conn.execution_expired?
-      1
+      conn.read_buffer
     end
   end
 
