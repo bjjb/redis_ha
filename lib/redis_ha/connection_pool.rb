@@ -18,12 +18,9 @@ class RedisHA::ConnectionPool
   end
 
   def connect(*conns)
-    #sock.connect(addr)
     conns.each do |conn|
-      @connections << RedisHA::Connection.new(conn)
+      @connections << RedisHA::Connection.new(conn, self)
     end
-
-    true
   end
 
   def method_missing(*msg)
@@ -75,6 +72,7 @@ private
         select
 
         @connections.each do |conn|
+          next unless conn.up_or_retry?
           await = true unless conn.ready?
         end
 

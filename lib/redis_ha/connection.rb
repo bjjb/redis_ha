@@ -1,16 +1,14 @@
 class RedisHA::Connection < Socket
   attr_accessor :addr, :status, :read_buffer, :write_buffer
 
-  def initialize(redis, opts = {})
-    super(AF_INET, SOCK_STREAM, 0)
-
-    setup(redis)
-
+  def initialize(redis, pool)
     @write_buffer = ""
     @read_buffer = ""
 
-    @read_timeout = opts[:read_timeout]
-    @retry_timeout = opts[:retry_timeout]
+    super(AF_INET, SOCK_STREAM, 0)
+
+    @pool = pool
+    setup(redis)
   end
 
   def connect
@@ -100,7 +98,7 @@ class RedisHA::Connection < Socket
     return true unless @down_since
 
     down_diff = Time.now.to_f - @down_since
-    return true if down_diff > @retry_timeout
+    return true if down_diff > @pool.retry_timeout
     false
   end
 

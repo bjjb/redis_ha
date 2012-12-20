@@ -7,7 +7,7 @@ def bm(label)
   t = Time.now.to_f
   yield
   d = (Time.now.to_f - t) * 1000
-  puts "#{label}: #{d.to_i}ms"
+  puts "#{label}: #{d.round(2)}ms"
 end
 
 $: << ::File.expand_path("..", __FILE__)
@@ -36,9 +36,11 @@ puts pool.ping.inspect
 end
 
 while sleep 1
-  b = 1000
-  bm "#{b}x ping" do
-    b.times do |n|
+  bm "1x ping" do
+    pool.ping
+  end
+  bm "1000x ping" do
+    1000.times do |n|
       pool.ping
     end
   end
