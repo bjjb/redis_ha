@@ -15,54 +15,74 @@ class RedisHA::ConnectionPool
     @retry_timeout = DEFAULT_RETRY_TIMEOUT
 
     @connections = []
-    @connected = false
   end
 
   def connect(*conns)
-    @connected = true
-
+    #sock.connect(addr)
     conns.each do |conn|
-      @connections << setup(conn)
+      @connections << RedisHA::Connection.new(conn)
     end
 
-    async(:connect)
-  end
-
-  def ensure_connected
-    unless @connected
-      raise RedisHA::Error.new("you need to call Base.connect first")
-    end
-
-    unless @connections.map(&:status).include?(:up)
-      raise RedisHA::Error.new("no servers available")
-    end
+    true
   end
 
   def method_missing(*msg)
-    ensure_connected
-    async(*msg)
+    # req = RedisHA::Protocol.request(msg)
+    req = "*1\r\n$#{msg.first.size}\r\n#{msg}"
+    execute(req)
   end
 
 private
 
-  def async(*msg)
-    @semaphore = RedisHA::Semaphore.new(@connections.size)
-
-    @connections.each do |conn|
-      conn << [@semaphore, *msg]
+  def execute(cmd)
+    @connections.each do |c|
+      c.rewind
+      c << "*1\r\n$4\r\nPING\r\n"
     end
 
-    @semaphore.wait
+    await
 
-    @connections.map(&:next).tap do
-      ensure_connected
+    @connections.map do |conn|
+      conn.read_buffer
     end
   end
 
-  def setup(redis_opts)
-    RedisHA::Connection.new(redis_opts,
-      :retry_timeout => @retry_timeout,
-      :read_timeout => @read_timeout)
+  def select
+    req = [[],[],[]]
+
+    @connections.each do |c|
+      req[0] << c if c.wait_read?
+      req[1] << c if c.wait_write?
+    end
+
+    req << @read_timeout
+    ready = IO.select(*req)
+
+    unless ready
+      req[0].each(&:execution_expired)
+      req[1].each(&:execution_expired)
+      return
+    end
+
+    ready[0].each(&:yield_read)
+    ready[1].each(&:yield_write)
+  end
+
+  def await
+    loop do
+      begin
+        await = false
+        select
+
+        @connections.each do |conn|
+          await = true unless conn.ready?
+        end
+
+        break unless await
+      rescue Errno::EAGAIN, Errno::EINTR
+        next
+      end
+    end
   end
 
 end

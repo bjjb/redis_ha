@@ -1,92 +1,98 @@
-class RedisHA::Connection < Thread
+class RedisHA::Connection < Socket
+  attr_accessor :addr, :status, :read_buffer, :write_buffer
 
-  POLL_INTERVAL = 0.01
+  def initialize(redis, opts = {})
+    super(AF_INET, SOCK_STREAM, 0)
 
-  attr_accessor :status, :buffer
+    setup(redis)
 
-  def initialize(redis_opts, opts = {})
-    self.abort_on_exception = true
+    @write_buffer = ""
+    @read_buffer = ""
 
     @read_timeout = opts[:read_timeout]
     @retry_timeout = opts[:retry_timeout]
-    @redis_opts = redis_opts
-
-    @queue = Array.new
-    @queue_lock = Mutex.new
-    @buffer = Array.new
-    @buffer_lock = Mutex.new
-
-    super do
-      run
-    end
-  end
-
-  def next
-    @buffer_lock.synchronize do
-      @buffer.shift
-    end
-  end
-
-  def <<(msg)
-    @buffer_lock.synchronize do
-      @queue << msg
-    end
-  end
-
-private
-
-  def run
-    while job = pop
-      semaphore, *msg = job
-
-      @buffer_lock.synchronize do
-        @buffer << send(*msg)
-      end
-
-      semaphore.decrement
-    end
-  end
-
-  def pop
-    loop do
-      sleep(POLL_INTERVAL) while @queue.size < 1
-      @queue_lock.synchronize do
-        job = @queue.shift
-        return job if job
-      end
-    end
   end
 
   def connect
-    with_timeout_and_check do
-      @redis = Redis.new(@redis_opts)
-      @redis.ping
+    connect_nonblock(@__addr)
+  rescue Errno::EINPROGRESS, Errno::ECONNABORTED
+    nil
+  rescue Errno::ECONNREFUSED
+    finish(:fail)
+  end
+
+  def yield_read
+    loop do
+      @read_buffer << read_nonblock(1)[0]
+    end
+  rescue Errno::EAGAIN
+    check || raise(Errno::EAGAIN)
+  rescue Errno::ENOTCONN
+    connect
+  rescue Errno::ECONNREFUSED
+    finish(:fail)
+  end
+
+  def yield_write
+    len = write_nonblock(@write_buffer)
+    @write_buffer = @write_buffer[len..-1] || ""
+  rescue Errno::EPIPE
+    connect
+  rescue Errno::ECONNREFUSED
+    finish(:fail)
+  end
+
+  def <<(buf)
+    @write_buffer << buf
+  end
+
+  def rewind
+    @read_buffer = ""
+    @write_buffer = ""
+    @ready = false
+  end
+
+  def wait_read?
+    return false if @ready
+    @write_buffer.size == 0
+  end
+
+  def wait_write?
+    return false if @ready
+    @write_buffer.size != 0
+  end
+
+  def execution_expired
+    finish(:fail)
+  end
+
+  def ready?
+    @ready == true
+  end
+
+  def setup(redis)
+    addr = [redis.fetch(:port), redis.fetch(:host)]
+    addr[1] = (TCPSocket.gethostbyname(addr[1])[4])
+    @__addr = Socket.pack_sockaddr_in(*addr)
+  end
+
+  def finish(stat)
+    @ready = true
+
+    if stat == :success
+      @down_since = nil if @status != :up
+      @status = :up
+    else
+      @status = :down
+      @down_since = Time.now.to_f
     end
   end
 
-  def method_missing(*msg)
-    with_timeout_and_check do
-      @redis.send(*msg)
-    end
-  end
+  def check
+    @ready = @read_buffer.size > 3 # FIXPAUL
 
-  def with_timeout_and_check(&block)
-    return nil unless up_or_retry?
-    with_timeout(&block)
-  end
-
-  def with_timeout
-    ret = Timeout::timeout(@read_timeout) do
-      yield
-    end
-  rescue Exception => e
-    @status = :down
-    @down_since = Time.now.to_f
-    return nil
-  else
-    @down_since = nil if @status != :up
-    @status = :up
-    return ret
+    finish(:success) if @ready
+    @ready
   end
 
   def up_or_retry?
@@ -99,4 +105,3 @@ private
   end
 
 end
-

@@ -19,28 +19,30 @@ pool.read_timeout = 0.1
 pool.connect(
   {:host => "localhost", :port => 6379},
   {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6381})
+  {:host => "localhost", :port => 6382})
 
 map = RedisHA::HashMap.new(pool, "fnordmap")
 set = RedisHA::Set.new(pool, "fnordset")
 ctr = RedisHA::Counter.new(pool, "fnordctr")
 
-load "./redis_ha/new_connection_pool.rb"
-p=RedisHA::NewConnectionPool.new
-p.add_redis(:host => "127.0.0.1", :port => (ENV["PORT"]||6379).to_i)
-p.add_redis(:host => "127.0.0.1", :port => (6380).to_i)
-x = p.execute(:ping)
-puts x.inspect
+puts pool.ping.inspect
 
-#Ripl.start :binding => binding
-exit
-
-bm "1000x ping" do
-  1000.times do |n|
-    pool.ping
+[100, 1000, 10000].each do |b|
+  bm "#{b}x ping" do
+    b.times do |n|
+      pool.ping
+    end
   end
 end
 
+while sleep 1
+  b = 1000
+  bm "#{b}x ping" do
+    b.times do |n|
+      pool.ping
+    end
+  end
+end
 
 bm "1000x HashMap.set w/ retries" do
   1000.times do |n|
