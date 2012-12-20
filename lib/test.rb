@@ -22,8 +22,10 @@ map = RedisHA::HashMap.new(pool, "fnordmap")
 set = RedisHA::Set.new(pool, "fnordset")
 ctr = RedisHA::Counter.new(pool, "fnordctr")
 
+load "./redis_ha/new_connection_pool.rb"; p=RedisHA::NewConnectionPool.new; p.add_redis(:host => "127.0.0.1", :port => (ENV["PORT"]||6379).to_i); p.execute(:ping)
+
 #Ripl.start :binding => binding
-#exit
+exit
 
 bm "1000x ping" do
   1000.times do |n|
