@@ -1,8 +1,13 @@
 RedisHA
 =======
 
-A redis client that runs commands on multiple servers in parallel 
-without blocking if one of them is down.
+RedisHA includes:
+
++ A redis client that runs commands on multiple servers in parallel 
+and handles failure gracefully 
+
++ A few highly available data structures / CRDTS (counter, set, hashmap)
+
 
 ### Rationale
 
@@ -15,8 +20,6 @@ uses asynchronous I/O, but it is more resilient than a complex server-side
 redis failover solution (sentinel, pacemaker, etcetera): you can `kill -9`
 any server at any time and continue to read and write as long as at least
 one server is healthy.
-
-The gem includes three basic CRDTs (set, hashmap and counter).
 
 [1] _DeCandia, Hastorun et al_ (2007). [Dynamo: Amazon’s Highly Available Key-value Store](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/decandia07dynamo.pd) (SOSP 2007)
 
