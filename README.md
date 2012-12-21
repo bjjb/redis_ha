@@ -4,7 +4,7 @@ RedisHA
 RedisHA includes:
 
 + A redis client that runs commands on multiple servers in parallel 
-and handles failiure gracefully 
+and handles failure gracefully 
 
 + A few highly available data structures / CRDTS (counter, set, hashmap)
 
