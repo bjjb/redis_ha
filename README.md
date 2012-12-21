@@ -21,61 +21,66 @@ Usage
 
 Create a RedisHA::ConnectionPool (connect does not block):
 
-    pool = RedisHA::ConnectionPool.new
-    pool.connect(
-      {:host => "localhost", :port => 6379},
-      {:host => "localhost", :port => 6380},
-      {:host => "localhost", :port => 6381}
-    )
-
+```ruby
+pool = RedisHA::ConnectionPool.new
+pool.connect(
+  {:host => "localhost", :port => 6379},
+  {:host => "localhost", :port => 6380},
+  {:host => "localhost", :port => 6381}
+)
+```
 
 Execute a command in parallel:
 
-    >> pool.ping
-    => ["PONG", "PONG", "PONG"]
-    
-    >> pool.setnx "fnord", 1
-    => [1,1,1]
-    
-    
+```ruby
+>> pool.ping
+=> ["PONG", "PONG", "PONG"]
+
+>> pool.setnx "fnord", 1
+=> [1,1,1]
+```
+
 RedisHA::Counter (INCR/DECR/SET/GET)
 
-    >> ctr = RedisHA::Counter.new(pool, "my-counter")
+```ruby
+>> ctr = RedisHA::Counter.new(pool, "my-counter")
 
-    >> ctr.set 3
-    => true
+>> ctr.set 3
+=> true
 
-    >> ctr.incr
-    => true
+>> ctr.incr
+=> true
 
-    >> ctr.get
-    => 4
-
+>> ctr.get
+=> 4
+```
 
 RedisHA::HashMap (SET/GET) 
-    
-    >> map = RedisHA::HashMap.new(pool, "my-hashmap")
-    
-    >> map.set(:fnord => 1, :fubar => 2)
-    => true
 
-    => map.get
-    => {:fnord=>1, :fubar=>2}
+```ruby
+>> map = RedisHA::HashMap.new(pool, "my-hashmap")
 
+>> map.set(:fnord => 1, :fubar => 2)
+=> true
+
+=> map.get
+=> {:fnord=>1, :fubar=>2}
+```
 
 RedisHA::Set (ADD/REM/GET)
 
-    >> set = RedisHA::Set.new(pool, "my-set")
-    
-    >> set.add(:fnord, :bar)
-    => true
+```ruby
+>> set = RedisHA::Set.new(pool, "my-set")
 
-    >> set.rem(:bar)
-    => true
+>> set.add(:fnord, :bar)
+=> true
 
-    >> set.get
-    => [:fnord]
+>> set.rem(:bar)
+=> true
 
+>> set.get
+=> [:fnord]
+```
 
 Timeouts
 --------
