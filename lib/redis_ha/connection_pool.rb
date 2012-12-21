@@ -20,6 +20,7 @@ class RedisHA::ConnectionPool
   def connect(*conns)
     conns.each do |conn|
       @connections << RedisHA::Connection.new(conn, self)
+      @connections.last.yield_connect
     end
   end
 

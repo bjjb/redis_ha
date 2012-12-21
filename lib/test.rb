@@ -17,13 +17,14 @@ pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
 pool.read_timeout = 0.1
 pool.connect(
-  {:host => "localhost", :port => 6379},
-  {:host => "localhost", :port => 6380},
-  {:host => "localhost", :port => 6382})
+  {:host => "localhost", :port => 6379})
 
-map = RedisHA::HashMap.new(pool, "fnordmap")
-set = RedisHA::Set.new(pool, "fnordset")
-ctr = RedisHA::Counter.new(pool, "fnordctr")
+#map = RedisHA::HashMap.new(pool, "fnordmap")
+#set = RedisHA::Set.new(pool, "fnordset")
+#ctr = RedisHA::Counter.new(pool, "fnordctr")
+
+Ripl.start :binding => binding
+exit
 
 puts pool.ping.inspect
 

@@ -11,7 +11,7 @@ class RedisHA::Connection < Socket
     setup(redis)
   end
 
-  def connect
+  def yield_connect
     connect_nonblock(@__addr)
   rescue Errno::EINPROGRESS, Errno::ECONNABORTED
     nil
@@ -26,7 +26,7 @@ class RedisHA::Connection < Socket
   rescue Errno::EAGAIN
     check || raise(Errno::EAGAIN)
   rescue Errno::ENOTCONN
-    connect
+    yield_connect
   rescue Errno::ECONNREFUSED
     finish(:fail)
   end
@@ -35,7 +35,7 @@ class RedisHA::Connection < Socket
     len = write_nonblock(@write_buffer)
     @write_buffer = @write_buffer[len..-1] || ""
   rescue Errno::EPIPE
-    connect
+    yield_connect
   rescue Errno::ECONNREFUSED
     finish(:fail)
   end
