@@ -21,4 +21,19 @@ class RedisHA::Protocol
     end
   end
 
+  def self.parse(buf)
+    case buf[0]
+      when "-" then RuntimeError.new(buf[1..-3])
+      when "+" then buf[1..-3]
+      when ":" then buf[1..-3].to_i
+
+      when "$"
+         buf.sub(/.*\r\n/,"")[0...-3] if buf[1..2] != "-1"
+
+      when "*"
+        RuntimeError.new("multi bulk replies are not supported")
+
+    end
+  end
+
 end

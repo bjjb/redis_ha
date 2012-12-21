@@ -87,8 +87,6 @@ class RedisHA::Connection < Socket
   end
 
   def check
-    #@ready = @read_buffer.size > 3 # FIXPAUL
-
     if RedisHA::Protocol.peek?(@read_buffer)
       @ready = true
     end
