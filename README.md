@@ -4,12 +4,17 @@ RedisHA
 A redis client that runs commands on multiple servers in parallel 
 without blocking if one of them is down.
 
+### Rationale
+
 I used this to implement a highly available session store on top of
-redis; it writes and reads the data to multiple instances and merges 
-the responses after every read. This approach is negligibly slower 
-than writing to a single server since RedisHA uses asynchronous I/O 
-and is much more robust than complex server-side redis failover solutions
-(sentinel, pacemaker, etcetera).
+redis; it writes and reads to multiple servers and merges the responses 
+after every read. 
+
+This is negligibly slower than writing to a single server since RedisHA 
+uses asynchronous I/O, but it is more resilient than a complex server-side
+redis failover solution (sentinel, pacemaker, etcetera): you can `kill -9`
+any server at any time and continue to read and write as long as at least
+one server is healthy.
 
 The gem includes three basic CRDTs (set, hashmap and counter).
 
