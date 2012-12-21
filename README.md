@@ -24,7 +24,7 @@ The gem includes three basic CRDTs (set, hashmap and counter).
 Usage
 -----
 
-Create a RedisHA::ConnectionPool (connect does not block):
+Create a RedisHA::ConnectionPool (`connect` does not block):
 
 ```ruby
 pool = RedisHA::ConnectionPool.new
@@ -42,8 +42,19 @@ Execute a command in parallel:
 => ["PONG", "PONG", "PONG"]
 
 >> pool.setnx "fnord", 1
-=> [1,1,1]
+=> [1, 1, 1]
 ```
+
+Execute a command in parallel when server #2 is down:
+
+```ruby
+>> pool.ping
+=> ["PONG", nil, "PONG"]
+
+>> pool.setnx "fnord", 1
+=> [1, nil, 1]
+```
+
 
 RedisHA::Counter (INCR/DECR/SET/GET)
 
@@ -87,18 +98,6 @@ RedisHA::Set (ADD/REM/GET)
 => [:fnord]
 ```
 
-Timeouts
---------
-
-here be dragons
-
-
-Caveats
---------
-
--> delete / decrement is not safe
-
-
 
 
 Installation
@@ -108,7 +107,51 @@ Installation
 
 or in your Gemfile:
 
-    gem 'redis_ha', '~> 0.3'
+    gem 'redis_ha', '>= 0.1'
+
+
+Timeouts
+--------
+
+RedisHA implements two timeouts per connection: A `read_timeout` and a `retry_timeout`
+
+When a server takes longer than read_timeout seconds to respond to a request it is 
+considered down. Once a server is down it is excluded from subsequent requests for the 
+given retry_timeout. 
+
+That means if one server is down, one request will take at least read_timeout seconds
+to complete every retry_timeout seconds.
+
+The defaults are 500ms for read and 10s for the retry. If you are only using fast redis
+operations you should set the read_timeout to 100ms or lower.
+
+```ruby
+pool = RedisHA::ConnectionPool.new
+pool.retry_timeout = 10
+pool.read_timeout = 0.1
+```
+
+
+Merge Strategies
+----------------
+
+The default merge strategy for `RedisHA::Set` favors addtions over deletions (a deleted
+element might re-appear in a set if a server goes down and comes back up with an
+old / inconsistent state, but a element can never be lost from a set as long as at least
+one server is healthy)
+
+The default merge strategy for `RedisHA::Counter` favor increments over decrements (a
+counters value might be greater than the real value in some conditions but it can never
+be less than the real value)
+
+You can define your own merge strategy:
+
+```ruby
+>> ctr = RedisHA::Counter.new(pool, "my-counter")  
+
+# select the smallest value when merging counter responses 
+>> ctr.merge_strategy = lambda{ |values| vales.map(&:to_i).min }
+```
 
 
 License
