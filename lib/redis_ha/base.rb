@@ -4,7 +4,6 @@ class RedisHA::Base
 
   def initialize(pool, key)
     @pool = pool
-    @pool.ensure_connected
     @key = key
   end
 

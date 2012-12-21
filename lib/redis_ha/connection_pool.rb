@@ -25,8 +25,7 @@ class RedisHA::ConnectionPool
   end
 
   def method_missing(*msg)
-    # req = RedisHA::Protocol.request(msg)
-    req = "*1\r\n$#{msg.first.size}\r\n#{msg}"
+    req = RedisHA::Protocol.request(*msg)
     execute(req)
   end
 
@@ -35,7 +34,7 @@ private
   def execute(cmd)
     @connections.each do |c|
       c.rewind
-      c << "*1\r\n$4\r\nPING\r\n"
+      c << cmd
     end
 
     await

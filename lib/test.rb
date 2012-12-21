@@ -26,7 +26,7 @@ pool.connect(
 Ripl.start :binding => binding
 exit
 
-puts pool.ping.inspect
+#puts pool.ping.inspect
 
 [100, 1000, 10000].each do |b|
   bm "#{b}x ping" do
@@ -37,9 +37,6 @@ puts pool.ping.inspect
 end
 
 while sleep 1
-  bm "1x ping" do
-    pool.ping
-  end
   bm "1000x ping" do
     1000.times do |n|
       pool.ping

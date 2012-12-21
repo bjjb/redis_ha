@@ -8,7 +8,7 @@ module RedisHA
 end
 
 require "redis_ha/base"
-require "redis_ha/semaphore"
+require "redis_ha/protocol"
 require "redis_ha/connection"
 require "redis_ha/connection_pool"
 require "redis_ha/hash_map"
