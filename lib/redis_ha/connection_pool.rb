@@ -25,6 +25,7 @@ class RedisHA::ConnectionPool
   end
 
   def method_missing(*msg)
+    msg = msg.map(&:to_s)
     req = RedisHA::Protocol.request(*msg)
     execute(req)
   end

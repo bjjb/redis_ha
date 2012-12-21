@@ -21,7 +21,7 @@ class RedisHA::Counter < RedisHA::Base
 
   def get
     versions = pool.get(@key).compact
-    merge_strategy[versions]
+    merge_strategy[versions].to_i
   end
 
   def merge_strategy

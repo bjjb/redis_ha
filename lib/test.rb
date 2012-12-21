@@ -21,7 +21,7 @@ pool.connect(
 
 #map = RedisHA::HashMap.new(pool, "fnordmap")
 #set = RedisHA::Set.new(pool, "fnordset")
-#ctr = RedisHA::Counter.new(pool, "fnordctr")
+ctr = RedisHA::Counter.new(pool, "fnordctr")
 
 Ripl.start :binding => binding
 exit
