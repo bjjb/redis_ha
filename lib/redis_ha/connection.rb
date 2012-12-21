@@ -13,7 +13,7 @@ class RedisHA::Connection < Socket
 
   def yield_connect
     connect_nonblock(@__addr)
-  rescue Errno::EINPROGRESS, Errno::ECONNABORTED
+  rescue Errno::EINPROGRESS, Errno::ECONNABORTED, Errno::EINVAL
     nil
   rescue Errno::ECONNREFUSED
     finish(:fail)
@@ -87,7 +87,11 @@ class RedisHA::Connection < Socket
   end
 
   def check
-    @ready = @read_buffer.size > 3 # FIXPAUL
+    #@ready = @read_buffer.size > 3 # FIXPAUL
+
+    if RedisHA::Protocol.peek?(@read_buffer)
+      @ready = true
+    end
 
     finish(:success) if @ready
     @ready
