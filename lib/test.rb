@@ -23,12 +23,12 @@ map = RedisHA::HashMap.new(pool, "fnordmap")
 set = RedisHA::Set.new(pool, "fnordset")
 ctr = RedisHA::Counter.new(pool, "fnordctr")
 
-set.add(:fnord, :bar, :fubar, :blubb)
-puts pool.smembers("fnordset").inspect
-puts set.get.inspect
+#set.add(:fnord, :bar, :fubar, :blubb)
+#puts pool.smembers("fnordset").inspect
+#puts set.get.inspect
 
-Ripl.start :binding => binding
-exit
+#Ripl.start :binding => binding
+#exit
 
 [100, 1000, 10000].each do |b|
   bm "#{b}x ping" do

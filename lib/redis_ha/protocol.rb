@@ -20,7 +20,7 @@ class RedisHA::Protocol
       if buf[0] == "*"
         multi = length
         length.times do |ind|
-          if buf[offset..offset+2] == "$-1"
+          if buf[offset+1..offset+2] == "-1"
             offset += 5
           elsif /^\$(?<len>[0-9]+)\r\n/ =~ buf[offset..-1]
             length = len.to_i
