@@ -8,7 +8,7 @@ class RedisHA::Protocol
 
   def self.peek?(buf)
     if ["+", ":", "-"].include?(buf[0])
-      buf[-2..-1] == "\r\n"
+      !!buf.index("\r\n")
 
     elsif ["$", "*"].include?(buf[0])
       offset = buf.index("\r\n").to_i
