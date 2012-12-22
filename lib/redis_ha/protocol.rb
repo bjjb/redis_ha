@@ -9,14 +9,30 @@ class RedisHA::Protocol
   def self.peek?(buf)
     if ["+", ":", "-"].include?(buf[0])
       buf[-2..-1] == "\r\n"
-    elsif buf[0] == "$"
+
+    elsif ["$", "*"].include?(buf[0])
       offset = buf.index("\r\n").to_i
       return false if offset == 0
       length = buf[1..offset].to_i
       return true if length == -1
+      offset += 2
+
+      if buf[0] == "*"
+        multi = length
+        length.times do |ind|
+          if buf[offset..offset+2] == "$-1"
+            offset += 5
+          elsif /^\$(?<len>[0-9]+)\r\n/ =~ buf[offset..-1]
+            length = len.to_i
+            offset += len.length + 3
+            offset += length + 2 if ind < multi - 1
+          else
+            return false
+          end
+        end
+      end
+
       buf.size >= (length + offset + 2)
-    elsif buf[0] == "*"
-      true
     end
   end
 
@@ -27,10 +43,20 @@ class RedisHA::Protocol
       when ":" then buf[1..-3].to_i
 
       when "$"
-         buf.sub(/.*\r\n/,"")[0...-2] if buf[1..2] != "-1"
+        if buf[1..2] == "-1"
+          buf.replace(buf[5..-1] || "")
+          nil
+        else
+          len = buf.match(/^\$([-0-9]+)\r\n/)[1]
+          ret = buf[len.length+3..len.length+len.to_i+2]
+          buf.replace(buf[len.to_i+len.length+5..-1] || "")
+          ret
+        end
 
       when "*"
-        RuntimeError.new("multi bulk replies are not supported")
+        cnt = buf.match(/^\*([0-9]+)\r\n/)[1]
+        buf = buf[cnt.length+3..-1]
+        cnt.to_i.times.map { parse(buf) }
 
     end
   end
