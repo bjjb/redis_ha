@@ -4,14 +4,21 @@ class RedisHA::Connection < Socket
   def initialize(redis, pool)
     @write_buffer = ""
     @read_buffer = ""
+    @response_offset = 0
 
     super(AF_INET, SOCK_STREAM, 0)
 
+    @redis = redis
     @pool = pool
     setup(redis)
   end
 
   def yield_connect
+    if @redis[:db] && !@db_selected
+      @db_selected = true
+      self <<  RedisHA::Protocol.request("select", @redis[:db])
+    end
+
     connect_nonblock(@__addr)
   rescue Errno::EINPROGRESS, Errno::ECONNABORTED, Errno::EINVAL
     nil
@@ -41,13 +48,19 @@ class RedisHA::Connection < Socket
   end
 
   def <<(buf)
+    @response_offset += 1
     @write_buffer << buf
   end
 
   def rewind
     @read_buffer = ""
-    @write_buffer = ""
     @ready = false
+    @response_offset = 0
+  end
+
+  def next
+    @response_offset -= 1
+    RedisHA::Protocol.parse(@read_buffer)
   end
 
   def wait_read?
@@ -65,7 +78,11 @@ class RedisHA::Connection < Socket
   end
 
   def ready?
-    @ready == true
+    if @ready && @response_offset > 0
+      self.next; @ready = false; check
+    end
+
+    !!@ready
   end
 
   def setup(redis)

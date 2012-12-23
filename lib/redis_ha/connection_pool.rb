@@ -41,7 +41,7 @@ private
     await
 
     @connections.map do |conn|
-      res = RedisHA::Protocol.parse(conn.read_buffer)
+      res = conn.next
 
       if res.is_a?(Exception)
         @connections.each(&:rewind)

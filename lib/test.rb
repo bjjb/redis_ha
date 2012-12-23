@@ -17,18 +17,21 @@ pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
 pool.read_timeout = 10.1
 pool.connect(
-  {:host => "localhost", :port => 6379})
+  {:host => "localhost", :port => 6379, :db => 2})
 
-map = RedisHA::HashMap.new(pool, "fnordmap")
-set = RedisHA::Set.new(pool, "fnordset")
-ctr = RedisHA::Counter.new(pool, "fnordctr")
+#map = RedisHA::HashMap.new(pool, "fnordmap")
+#set = RedisHA::Set.new(pool, "fnordset")
+#ctr = RedisHA::Counter.new(pool, "fnordctr")
 
 #set.add(:fnord, :bar, :fubar, :blubb)
 #puts pool.smembers("fnordset").inspect
 #puts set.get.inspect
 
-#Ripl.start :binding => binding
-#exit
+puts pool.get("dawanda:session:fnord").inspect
+exit
+
+Ripl.start :binding => binding
+exit
 
 [100, 1000, 10000].each do |b|
   bm "#{b}x ping" do

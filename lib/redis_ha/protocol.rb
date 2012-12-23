@@ -2,7 +2,7 @@ class RedisHA::Protocol
 
   def self.request(*args)
     args.inject("*#{args.size}\r\n") do |s, arg|
-      s << "$#{arg.size}\r\n#{arg}\r\n"
+      s << "$#{arg.to_s.length}\r\n#{arg}\r\n"
     end
   end
 
@@ -38,9 +38,16 @@ class RedisHA::Protocol
 
   def self.parse(buf)
     case buf[0]
-      when "-" then RuntimeError.new(buf[1..-3])
-      when "+" then buf[1..-3]
-      when ":" then buf[1..-3].to_i
+      when "-", "+", ":" then
+        len = buf.index("\r\n")
+        ret = buf[0..len-1]
+        buf.replace(buf[len+2..-1])
+
+        case ret[0]
+          when "+" then ret[1..-1]
+          when ":" then ret[1..-1].to_i
+          when "-" then RuntimeError.new(ret[1..-1])
+        end
 
       when "$"
         if buf[1..2] == "-1"
