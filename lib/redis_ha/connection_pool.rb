@@ -8,7 +8,7 @@ class RedisHA::ConnectionPool
   # the default is 5s
   DEFAULT_RETRY_TIMEOUT = 5
 
-  attr_accessor :status, :connections, :read_timeout, :retry_timeout
+  attr_accessor :connections, :read_timeout, :retry_timeout
 
   def initialize
     @read_timeout  = DEFAULT_READ_TIMEOUT

@@ -16,7 +16,8 @@ class RedisHA::Connection < Socket
   def yield_connect
     if @redis[:db] && !@db_selected
       @db_selected = true
-      self <<  RedisHA::Protocol.request("select", @redis[:db])
+      @response_offset += 1
+      self << RedisHA::Protocol.request("select", @redis[:db])
     end
 
     connect_nonblock(@__addr)
@@ -48,14 +49,12 @@ class RedisHA::Connection < Socket
   end
 
   def <<(buf)
-    @response_offset += 1
     @write_buffer << buf
   end
 
   def rewind
-    @read_buffer = ""
     @ready = false
-    @response_offset = 0
+    @response_offset -= 0
   end
 
   def next

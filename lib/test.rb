@@ -15,7 +15,7 @@ require "redis_ha"
 
 pool = RedisHA::ConnectionPool.new
 pool.retry_timeout = 0.5
-pool.read_timeout = 10.1
+pool.read_timeout = 0.1
 pool.connect(
   {:host => "localhost", :port => 6379, :db => 2},
   {:host => "127.0.0.1", :port => 6380, :db => 2})
@@ -28,7 +28,7 @@ pool.connect(
 #puts pool.smembers("fnordset").inspect
 #puts set.get.inspect
 
-puts pool.ping.inspect
+10.times{ puts pool.ping.inspect }
 exit
 
 Ripl.start :binding => binding
