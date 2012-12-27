@@ -87,7 +87,7 @@ class RedisHA::Connection < Socket
 
   def setup(redis)
     addr = [redis.fetch(:port), redis.fetch(:host)]
-    addr[1] = (TCPSocket.gethostbyname(addr[1])[4])
+    addr[1] = (TCPSocket.gethostbyname(addr[1]).last)
     @__addr = Socket.pack_sockaddr_in(*addr)
   end
 
